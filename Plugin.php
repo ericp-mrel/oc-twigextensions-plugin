@@ -2,10 +2,14 @@
 
 use App;
 use Carbon\Carbon;
+use Cms\Classes\Controller;
+use Event;
 use Snilius\Twig\SortByFieldExtension;
+use Symfony\Component\String\UnicodeString;
 use System\Classes\PluginBase;
 use Twig\Extension\StringLoaderExtension;
-use VojtaSvoboda\TwigExtensions\Classes\TimeDiffTranslator;
+use Twig\Extra\Intl\IntlExtension;
+use Twig\Extra\String\StringExtension;
 
 /**
  * Twig Extensions Plugin.
@@ -37,13 +41,28 @@ class Plugin extends PluginBase
 
     public function boot()
     {
-        $this->app->singleton('time_diff_translator', function ($app) {
-            $loader = $app->make('translation.loader');
-            $locale = $app->config->get('app.locale');
-            $translator = $app->make(TimeDiffTranslator::class, [$loader, $locale]);
-            $translator->setFallback($app->config->get('app.fallback_locale'));
+        /** @var \Twig\Environment $twig */
+        $twig = $this->app->make('twig.environment');
+        if (! $twig->hasExtension(IntlExtension::class)) {
+            $twig->addExtension(new IntlExtension());
+        }
 
-            return $translator;
+        if (! $twig->hasExtension(StringExtension::class)) {
+            $twig->addExtension(new StringExtension());
+        }
+
+        Event::listen('cms.page.beforeRenderPage', function (Controller $controller, $page) {
+            $twig = $controller->getTwig();
+
+            if (! $twig->hasExtension(IntlExtension::class)) {
+                $twig->addExtension(new IntlExtension());
+            }
+
+            if (! $twig->hasExtension(StringExtension::class)) {
+                $twig->addExtension(new StringExtension());
+            }
+
+            trace_log(array_keys($twig->getExtensions()));
         });
     }
 
@@ -57,12 +76,13 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    public function registerMarkupTags()
+    public function registerMarkupTags(): array
     {
         $filters = [];
         $functions = [];
 
         // init Twig
+        /** @var \Twig\Environment $twig */
         $twig = $this->app->make('twig.environment');
 
         // add String Loader functions
@@ -84,7 +104,7 @@ class Plugin extends PluginBase
         $functions += $this->getVarDumpFunction();
 
         // add Text extensions
-        $filters += $this->getTextFilters($twig);
+        $filters += $this->getTextFilters();
 
         // add Intl extensions if php5-intl installed
         if (class_exists('IntlDateFormatter')) {
@@ -95,7 +115,7 @@ class Plugin extends PluginBase
         $filters += $this->getArrayFilters();
 
         // add Time extensions
-        $filters += $this->getTimeFilters($twig);
+        $filters += $this->getTimeFilters();
 
         // add Sort by Field extensions
         $filters += $this->getSortByField();
@@ -138,23 +158,16 @@ class Plugin extends PluginBase
     /**
      * Returns Text filters.
      *
-     * @param \Twig_Environment $twig
-     *
      * @return array
      */
-    private function getTextFilters($twig): array
+    private function getTextFilters(): array
     {
-        $textExtension = new StringExtension();
-        $textFilters = $textExtension->getFilters();
-
         return [
-            'truncate' => function ($value, $length = 30, $preserve = false, $separator = '...') use ($twig, $textFilters) {
-                $callable = $textFilters[0]->getCallable();
-                return $callable($twig, $value, $length, $preserve, $separator);
+            'truncate' => function ($value, $length = 30, $preserve = false, $separator = '...') {
+                return (new UnicodeString($value))->truncate($length, $separator, !$preserve)->toString();
             },
-            'wordwrap' => function ($value, $length = 80, $separator = "\n", $preserve = false) use ($twig, $textFilters) {
-                $callable = $textFilters[1]->getCallable();
-                return $callable($twig, $value, $length, $separator, $preserve);
+            'wordwrap' => function ($value, $length = 80, $separator = "\n", $preserve = false) {
+                return (new UnicodeString($value))->wordwrap($length, $separator, !$preserve)->toString();
             }
         ];
     }
@@ -168,21 +181,17 @@ class Plugin extends PluginBase
      */
     private function getLocalizedFilters($twig): array
     {
-        $intlExtension = new \Twig\Extra\Intl\IntlExtension();
-        $intlFilters = $intlExtension->getFilters();
+        $intlExtension = new IntlExtension();
 
         return [
-            'localizeddate' => function ($date, $dateFormat = 'medium', $timeFormat = 'medium', $locale = null, $timezone = null, $format = null) use ($twig, $intlFilters) {
-                $callable = $intlFilters[0]->getCallable();
-                return $callable($twig, $date, $dateFormat, $timeFormat, $locale, $timezone, $format);
+            'localizeddate' => function ($date, $dateFormat = 'medium', $timeFormat = 'medium', $locale = null, $timezone = null, $format = '') use ($twig, $intlExtension) {
+                return $intlExtension->formatDateTime($twig, $date, $dateFormat, $timeFormat, $format, $timezone, 'gregorian', $locale);
             },
-            'localizednumber' => function ($number, $style = 'decimal', $type = 'default', $locale = null) use ($twig, $intlFilters) {
-                $callable = $intlFilters[1]->getCallable();
-                return $callable($number, $style, $type, $locale);
+            'localizednumber' => function ($number, $style = 'decimal', $type = 'default', $locale = null) use ($twig, $intlExtension) {
+                return $intlExtension->formatNumber($number, [], $style, $type, $locale);
             },
-            'localizedcurrency' => function ($number, $currency = null, $locale = null) use ($twig, $intlFilters) {
-                $callable = $intlFilters[2]->getCallable();
-                return $callable($number, $currency, $locale);
+            'localizedcurrency' => function ($number, $currency = null, $locale = null) use ($twig, $intlExtension) {
+                return $intlExtension->formatCurrency($number, $currency, [], $locale);
             }
         ];
     }
@@ -210,25 +219,15 @@ class Plugin extends PluginBase
     /**
      * Returns Date filters.
      *
-     * @param \Twig_Environment $twig
-     *
      * @return array
      */
-    private function getTimeFilters($twig): array
+    private function getTimeFilters(): array
     {
-        return [];
-
-        //$translator = $this->app->make('time_diff_translator');
-        //$timeExtension = new Twig_Extensions_Extension_Date($translator);
-        //$timeFilters = $timeExtension->getFilters();
-        //
-        //// TODO: Needs re-implementation.
-        //return [
-        //    'time_diff' => function ($date, $now = null) use ($twig, $timeFilters) {
-        //        $callable = $timeFilters[0]->getCallable();
-        //        return $callable($twig, $date, $now);
-        //    }
-        //];
+        return [
+            'time_diff' => function ($date, $now = null) {
+                return Carbon::parse($date)->diffForHumans($now);
+            }
+        ];
     }
 
     /**
