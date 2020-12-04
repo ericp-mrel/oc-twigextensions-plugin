@@ -5,11 +5,7 @@ use Backend;
 use Carbon\Carbon;
 use Snilius\Twig\SortByFieldExtension;
 use System\Classes\PluginBase;
-use Twig_Extension_StringLoader;
-use Twig_Extensions_Extension_Array;
-use Twig_Extensions_Extension_Date;
-use Twig_Extensions_Extension_Intl;
-use Twig_Extensions_Extension_Text;
+use Twig\Extension\StringLoaderExtension;
 use VojtaSvoboda\TwigExtensions\Classes\TimeDiffTranslator;
 
 /**
@@ -127,9 +123,9 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getStringLoaderFunctions($twig)
+    private function getStringLoaderFunctions($twig): array
     {
-        $stringLoader = new Twig_Extension_StringLoader();
+        $stringLoader = new StringLoaderExtension();
         $stringLoaderFunc = $stringLoader->getFunctions();
 
         return [
@@ -147,7 +143,7 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getTextFilters($twig)
+    private function getTextFilters($twig): array
     {
         $textExtension = new Twig_Extensions_Extension_Text();
         $textFilters = $textExtension->getFilters();
@@ -171,9 +167,9 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getLocalizedFilters($twig)
+    private function getLocalizedFilters($twig): array
     {
-        $intlExtension = new Twig_Extensions_Extension_Intl();
+        $intlExtension = new \Twig\Extra\Intl\IntlExtension\IntlExtension();
         $intlFilters = $intlExtension->getFilters();
 
         return [
@@ -197,15 +193,17 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getArrayFilters()
+    private function getArrayFilters(): array
     {
-        $arrayExtension = new Twig_Extensions_Extension_Array();
-        $arrayFilters = $arrayExtension->getFilters();
-
         return [
-            'shuffle' => function ($array) use ($arrayFilters) {
-                $callable = $arrayFilters[0]->getCallable();
-                return $callable($array);
+            'shuffle' => function ($array) {
+                if ($array instanceof \Traversable) {
+                    $array = iterator_to_array($array, false);
+                }
+
+                shuffle($array);
+
+                return $array;
             }
         ];
     }
