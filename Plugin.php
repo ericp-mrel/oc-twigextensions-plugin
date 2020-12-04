@@ -1,7 +1,6 @@
 <?php namespace VojtaSvoboda\TwigExtensions;
 
 use App;
-use Backend;
 use Carbon\Carbon;
 use Snilius\Twig\SortByFieldExtension;
 use System\Classes\PluginBase;
@@ -145,7 +144,7 @@ class Plugin extends PluginBase
      */
     private function getTextFilters($twig): array
     {
-        $textExtension = new Twig_Extensions_Extension_Text();
+        $textExtension = new StringExtension();
         $textFilters = $textExtension->getFilters();
 
         return [
@@ -169,7 +168,7 @@ class Plugin extends PluginBase
      */
     private function getLocalizedFilters($twig): array
     {
-        $intlExtension = new \Twig\Extra\Intl\IntlExtension\IntlExtension();
+        $intlExtension = new \Twig\Extra\Intl\IntlExtension();
         $intlFilters = $intlExtension->getFilters();
 
         return [
@@ -215,18 +214,21 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getTimeFilters($twig)
+    private function getTimeFilters($twig): array
     {
-        $translator = $this->app->make('time_diff_translator');
-        $timeExtension = new Twig_Extensions_Extension_Date($translator);
-        $timeFilters = $timeExtension->getFilters();
+        return [];
 
-        return [
-            'time_diff' => function ($date, $now = null) use ($twig, $timeFilters) {
-                $callable = $timeFilters[0]->getCallable();
-                return $callable($twig, $date, $now);
-            }
-        ];
+        //$translator = $this->app->make('time_diff_translator');
+        //$timeExtension = new Twig_Extensions_Extension_Date($translator);
+        //$timeFilters = $timeExtension->getFilters();
+        //
+        //// TODO: Needs re-implementation.
+        //return [
+        //    'time_diff' => function ($date, $now = null) use ($twig, $timeFilters) {
+        //        $callable = $timeFilters[0]->getCallable();
+        //        return $callable($twig, $date, $now);
+        //    }
+        //];
     }
 
     /**
@@ -234,7 +236,7 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getSortByField()
+    private function getSortByField(): array
     {
         $extension = new SortByFieldExtension();
         $filters = $extension->getFilters();
@@ -252,7 +254,7 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getMailFilters()
+    private function getMailFilters(): array
     {
         return [
             'mailto' => function ($string, $link = true, $protected = true, $text = null, $class = "") {
@@ -266,7 +268,7 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getPhpFunctions()
+    private function getPhpFunctions(): array
     {
         return [
             'strftime' => function ($time, $format = '%d.%m.%Y %H:%M:%S') {
@@ -318,9 +320,8 @@ class Plugin extends PluginBase
             'var_dump' => function ($expression) {
                 ob_start();
                 var_dump($expression);
-                $result = ob_get_clean();
 
-                return $result;
+                return ob_get_clean();
             },
         ];
     }
@@ -392,9 +393,8 @@ class Plugin extends PluginBase
             'var_dump' => function ($expression) {
                 ob_start();
                 var_dump($expression);
-                $result = ob_get_clean();
 
-                return $result;
+                return ob_get_clean();
             },
         ];
     }

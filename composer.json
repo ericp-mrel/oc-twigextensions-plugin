@@ -17,10 +17,8 @@
     "php": ">=7.2",
     "composer/installers": "~1.0",
     "snilius/twig-sort-by-field": "^0.1.5",
-      "twig/html-extra": "^2.12|^3.0",
-      "twig/inky-extra": "^2.12|^3.0",
       "twig/intl-extra": "^2.12|^3.0",
-      "twig/markdown-extra": "^2.12|^3.0"
+      "twig/string-extra": "^2.12|^3.0"
   },
     "suggest": {
         "symfony/translation": "Allow the time_diff output to be translated"
