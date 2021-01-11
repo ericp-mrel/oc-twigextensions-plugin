@@ -61,8 +61,6 @@ class Plugin extends PluginBase
             if (! $twig->hasExtension(StringExtension::class)) {
                 $twig->addExtension(new StringExtension());
             }
-
-            trace_log(array_keys($twig->getExtensions()));
         });
     }
 
