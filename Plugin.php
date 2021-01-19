@@ -42,16 +42,16 @@ class Plugin extends PluginBase
     public function boot()
     {
         /** @var \Twig\Environment $twig */
-        $twig = $this->app->make('twig.environment');
-        if (! $twig->hasExtension(IntlExtension::class)) {
-            $twig->addExtension(new IntlExtension());
-        }
+        //$twig = $this->app->make('twig.environment');
+        //if (! $twig->hasExtension(IntlExtension::class)) {
+        //    $twig->addExtension(new IntlExtension());
+        //}
+        //
+        //if (! $twig->hasExtension(StringExtension::class)) {
+        //    $twig->addExtension(new StringExtension());
+        //}
 
-        if (! $twig->hasExtension(StringExtension::class)) {
-            $twig->addExtension(new StringExtension());
-        }
-
-        Event::listen('cms.page.beforeRenderPage', function (Controller $controller, $page) {
+        Event::listen('cms.page.beforeDisplay', function (Controller $controller, $page) {
             $twig = $controller->getTwig();
 
             if (! $twig->hasExtension(IntlExtension::class)) {
@@ -73,6 +73,7 @@ class Plugin extends PluginBase
      * @see Time extension http://twig.sensiolabs.org/doc/extensions/date.html
      *
      * @return array
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function registerMarkupTags(): array
     {
@@ -116,7 +117,7 @@ class Plugin extends PluginBase
         $filters += $this->getTimeFilters();
 
         // add Sort by Field extensions
-        $filters += $this->getSortByField();
+        //$filters += $this->getSortByField();
 
         // add Mail filters
         $filters += $this->getMailFilters();
@@ -136,11 +137,11 @@ class Plugin extends PluginBase
     /**
      * Returns String Loader functions.
      *
-     * @param \Twig_Environment $twig
+     * @param \Twig\Environment $twig
      *
      * @return array
      */
-    private function getStringLoaderFunctions($twig): array
+    private function getStringLoaderFunctions(\Twig\Environment $twig): array
     {
         $stringLoader = new StringLoaderExtension();
         $stringLoaderFunc = $stringLoader->getFunctions();
@@ -173,11 +174,11 @@ class Plugin extends PluginBase
     /**
      * Returns Intl filters.
      *
-     * @param \Twig_Environment $twig
+     * @param \Twig\Environment $twig
      *
      * @return array
      */
-    private function getLocalizedFilters($twig): array
+    private function getLocalizedFilters(\Twig\Environment $twig): array
     {
         $intlExtension = new IntlExtension();
 
@@ -233,18 +234,18 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getSortByField(): array
-    {
-        $extension = new SortByFieldExtension();
-        $filters = $extension->getFilters();
-
-        return [
-            'sortbyfield' => function ($array, $sort_by = null, $direction = 'asc') use ($filters) {
-                $callable = $filters[0]->getCallable();
-                return $callable($array, $sort_by, $direction);
-            }
-        ];
-    }
+    //private function getSortByField(): array
+    //{
+    //    $extension = new SortByFieldExtension();
+    //    $filters = $extension->getFilters();
+    //
+    //    return [
+    //        'sortbyfield' => function ($array, $sort_by = null, $direction = 'asc') use ($filters) {
+    //            $callable = $filters[0]->getCallable();
+    //            return $callable($array, $sort_by, $direction);
+    //        }
+    //    ];
+    //}
 
     /**
      * Returns mail filters.
