@@ -5,8 +5,6 @@ use Carbon\Carbon;
 use Config;
 use PluginTestCase;
 
-//require_once __DIR__ . '/../vendor/autoload.php';
-
 class PluginTest extends PluginTestCase
 {
     public function setUp() : void
@@ -20,6 +18,7 @@ class PluginTest extends PluginTestCase
      * Return Twig environment
      *
      * @return \Twig\Environment
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     private function getTwig(): \Twig\Environment
     {
@@ -34,7 +33,7 @@ class PluginTest extends PluginTestCase
         $template .= '{{ include(template_from_string("Hello {{ name }}")) }}';
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'Hello John');
+        $this->assertEquals('Hello John', $twigTemplate->render());
     }
 
     public function testTruncateFilterForFive()
@@ -44,7 +43,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'Gordon Freeman' | truncate(5) }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'Gordo...');
+        $this->assertEquals('Gordo...', $twigTemplate->render());
     }
 
     public function testTruncateFilterForDefault()
@@ -54,17 +53,22 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'Lorem ipsum dolor sit amet, consectetur adipiscing elit' | truncate }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'Lorem ipsum dolor sit amet, co...');
+        $this->assertEquals('Lorem ipsum dolor sit amet, co...', $twigTemplate->render());
     }
 
     public function testTruncateFilterWithSeparator()
     {
         $twig = $this->getTwig();
 
-        $template = "{{ 'Gordon Freeman' | truncate(5, false, '-') }}";
+        $template = "{{ 'Hello World!'|truncate(7, true) }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'Gordo-');
+        $this->assertEquals('Hello World!', $twigTemplate->render());
+
+        $template = "{{ 'Hello World!'|truncate(7, false, '??') }}";
+
+        $twigTemplate = $twig->createTemplate($template);
+        $this->assertEquals('Hello W??', $twigTemplate->render());
     }
 
     public function testWordWrapFilter()
@@ -74,7 +78,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'Lorem ipsum dolor sit amet, consectetur adipiscing elit' | wordwrap(10) }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), "Lorem ipsu\nm dolor si\nt amet, co\nnsectetur \nadipiscing\n elit");
+        $this->assertEquals("Lorem ipsu\nm dolor si\nt amet, co\nnsectetur \nadipiscing\n elit", $twigTemplate->render());
     }
 
     public function testShuffleFilter()
@@ -85,7 +89,7 @@ class PluginTest extends PluginTestCase
 
         $twigTemplate = $twig->createTemplate($template);
         $this->expectException('Twig_Error_Runtime', 'Array to string conversion');
-        $twigTemplate->render([]);
+        $twigTemplate->render();
     }
 
     public function testShuffleFilterForeach()
@@ -95,7 +99,7 @@ class PluginTest extends PluginTestCase
         $template = "{% for i in [1, 2, 3] | shuffle %}{{ i }}{% endfor %}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals(strlen($twigTemplate->render([])), 3);
+        $this->assertEquals(3, strlen($twigTemplate->render()));
     }
 
     public function testTimeDiffFunction()
@@ -107,7 +111,7 @@ class PluginTest extends PluginTestCase
 
         // this test fails at TravisCI and I don't know why
         $twigTemplate = $twig->createTemplate($template);
-        // $this->assertEquals($twigTemplate->render([]), '1 minute ago');
+         $this->assertEquals('1 minute ago', $twigTemplate->render());
     }
 
     public function testStrftimeFunction()
@@ -117,7 +121,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ '2016-03-24 23:05' | strftime('%d.%m.%Y %H:%M:%S') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), '24.03.2016 23:05:00');
+        $this->assertEquals('24.03.2016 23:05:00', $twigTemplate->render());
     }
 
     public function testUppercaseFunction()
@@ -127,7 +131,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'Hello Jack' | uppercase }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'HELLO JACK');
+        $this->assertEquals('HELLO JACK', $twigTemplate->render());
     }
 
     public function testLowercaseFunction()
@@ -137,7 +141,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'Hello JACK' | lowercase }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'hello jack');
+        $this->assertEquals('hello jack', $twigTemplate->render());
     }
 
     public function testUcfirstFunction()
@@ -147,7 +151,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'heLLo jack' | ucfirst }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'HeLLo jack');
+        $this->assertEquals('HeLLo jack', $twigTemplate->render());
     }
 
     public function testLcfirstFunction()
@@ -157,7 +161,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'HEllO JACK' | lcfirst }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'hEllO JACK');
+        $this->assertEquals('hEllO JACK', $twigTemplate->render());
     }
 
     public function testLtrimFunction()
@@ -167,7 +171,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ ' jack' | ltrim }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'jack');
+        $this->assertEquals('jack', $twigTemplate->render());
     }
 
     public function testRtrimFunction()
@@ -177,7 +181,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'jack ' | rtrim }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'jack');
+        $this->assertEquals('jack', $twigTemplate->render());
     }
 
     public function testStrRepeatFunction()
@@ -187,7 +191,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ ' best' | str_repeat(3) }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), ' best best best');
+        $this->assertEquals(' best best best', $twigTemplate->render());
     }
 
     public function testPluralFunction()
@@ -197,7 +201,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'mail' | plural(count) }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'mails');
+        $this->assertEquals('mails', $twigTemplate->render());
     }
 
     public function testStrpadFunction()
@@ -207,7 +211,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'test' | strpad(10) }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), '   test   ');
+        $this->assertEquals('   test   ', $twigTemplate->render());
     }
 
     public function testStrReplaceFunction()
@@ -217,7 +221,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'test' | str_replace('test', 'tset') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'tset');
+        $this->assertEquals('tset', $twigTemplate->render());
     }
 
     public function testStripTagsFunction()
@@ -227,7 +231,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ '<p><b>text</b></p>' | strip_tags('<p>') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), '<p>text</p>');
+        $this->assertEquals('<p>text</p>', $twigTemplate->render());
     }
 
     public function testLeftpadFunction()
@@ -237,7 +241,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'test' | leftpad(7) }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), '   test');
+        $this->assertEquals('   test', $twigTemplate->render());
     }
 
     public function testRightpadFunction()
@@ -247,7 +251,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'test' | rightpad(7, 'o') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'testooo');
+        $this->assertEquals('testooo', $twigTemplate->render());
     }
 
     public function testRtlFunction()
@@ -257,25 +261,25 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'Hello world!' | rtl }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), '!dlrow olleH');
+        $this->assertEquals('!dlrow olleH', $twigTemplate->render());
     }
 
-    public function testSortByFieldFunction()
-    {
-        $twig = $this->getTwig();
-
-        // sort by name
-        $template = "{% set data = [{'name': 'David', 'age': 31}, {'name': 'John', 'age': 28}] %}";
-        $template .= "{% for item in data | sortbyfield('name') %}{{ item.name }}{% endfor %}";
-        $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'DavidJohn');
-
-        // sort by age
-        $template = "{% set data = [{'name': 'David', 'age': 31}, {'name': 'John', 'age': 28}] %}";
-        $template .= "{% for item in data | sortbyfield('age') %}{{ item.name }}{% endfor %}";
-        $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'JohnDavid');
-    }
+    //public function testSortByFieldFunction()
+    //{
+    //    $twig = $this->getTwig();
+    //
+    //    // sort by name
+    //    $template = "{% set data = [{'name': 'David', 'age': 31}, {'name': 'John', 'age': 28}] %}";
+    //    $template .= "{% for item in data | sortbyfield('name') %}{{ item.name }}{% endfor %}";
+    //    $twigTemplate = $twig->createTemplate($template);
+    //    $this->assertEquals($twigTemplate->render(), 'DavidJohn');
+    //
+    //    // sort by age
+    //    $template = "{% set data = [{'name': 'David', 'age': 31}, {'name': 'John', 'age': 28}] %}";
+    //    $template .= "{% for item in data | sortbyfield('age') %}{{ item.name }}{% endfor %}";
+    //    $twigTemplate = $twig->createTemplate($template);
+    //    $this->assertEquals($twigTemplate->render(), 'JohnDavid');
+    //}
 
     public function testMailtoFilter()
     {
@@ -284,33 +288,34 @@ class PluginTest extends PluginTestCase
         // same as mailto(true, true)
         $template = "{{ 'vojtasvoboda.cz@gmail.com' | mailto }}";
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertNotContains('vojtasvoboda.cz@gmail.com', $twigTemplate->render([]));
-        $this->assertContains('mailto:', $twigTemplate->render([]));
+
+        $this->assertStringNotContainsString('vojtasvoboda.cz@gmail.com', $twigTemplate->render());
+        $this->assertStringContainsString('mailto:', $twigTemplate->render());
 
         // mailto(false, false) eg. without link and unprotected
         $template = "{{ 'vojtasvoboda.cz@gmail.com' | mailto(false, false) }}";
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertContains('vojtasvoboda.cz@gmail.com', $twigTemplate->render([]));
-        $this->assertNotContains('mailto:', $twigTemplate->render([]));
+        $this->assertStringContainsString('vojtasvoboda.cz@gmail.com', $twigTemplate->render());
+        $this->assertStringNotContainsString('mailto:', $twigTemplate->render());
 
         // mailto(true, false) eg. with link but unprotected
         $template = "{{ 'vojtasvoboda.cz@gmail.com' | mailto(true, false) }}";
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertContains('vojtasvoboda.cz@gmail.com', $twigTemplate->render([]));
-        $this->assertContains('mailto', $twigTemplate->render([]));
+        $this->assertStringContainsString('vojtasvoboda.cz@gmail.com', $twigTemplate->render());
+        $this->assertStringContainsString('mailto', $twigTemplate->render());
 
         // mailto(false, true) eg. without link and protected
         $template = "{{ 'vojtasvoboda.cz@gmail.com' | mailto(false, true) }}";
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertNotContains('vojtasvoboda.cz@gmail.com', $twigTemplate->render([]));
-        $this->assertNotContains('mailto', $twigTemplate->render([]));
+        $this->assertStringNotContainsString('vojtasvoboda.cz@gmail.com', $twigTemplate->render());
+        $this->assertStringNotContainsString('mailto', $twigTemplate->render());
 
         // mailto(true, true, 'Let me know') eg. with link, protected and with non-crypted text
         $template = "{{ 'vojtasvoboda.cz@gmail.com' | mailto(false, true, 'Let me know') }}";
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertNotContains('vojtasvoboda.cz@gmail.com', $twigTemplate->render([]));
-        $this->assertNotContains('mailto', $twigTemplate->render([]));
-        $this->assertContains('Let me know', $twigTemplate->render([]));
+        $this->assertStringNotContainsString('vojtasvoboda.cz@gmail.com', $twigTemplate->render());
+        $this->assertStringNotContainsString('mailto', $twigTemplate->render());
+        $this->assertStringContainsString('Let me know', $twigTemplate->render());
     }
 
     public function testVardumpFunction()
@@ -320,7 +325,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ var_dump('test') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertContains('string(4) "test"', $twigTemplate->render([]));
+        $this->assertStringContainsString('string(4) "test"', $twigTemplate->render());
     }
 
     public function testVardumpFilter()
@@ -330,7 +335,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ 'test' | var_dump }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertContains('string(4) "test"', $twigTemplate->render([]));
+        $this->assertStringContainsString('string(4) "test"', $twigTemplate->render());
     }
 
     public function testConfigFunction()
@@ -343,7 +348,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ config('" . $key . "') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), $value);
+        $this->assertEquals($twigTemplate->render(), $value);
     }
 
     public function testEnvFunction()
@@ -356,7 +361,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ env('" . $key . "') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), $value);
+        $this->assertEquals($twigTemplate->render(), $value);
     }
 
     public function testSessionFunction()
@@ -368,7 +373,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ session('my.session.key') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'test value');
+        $this->assertEquals('test value', $twigTemplate->render());
     }
 
     public function testTransFunction()
@@ -379,7 +384,7 @@ class PluginTest extends PluginTestCase
         $template = "{{ trans('validation.accepted') }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertEquals($twigTemplate->render([]), 'The :attribute must be accepted.');
+        $this->assertEquals('The :attribute must be accepted.', $twigTemplate->render());
     }
 
     public function testTransFunctionWithParam()
@@ -390,6 +395,6 @@ class PluginTest extends PluginTestCase
         $template = "{{ trans('backend::lang.access_log.hint', {'days': 60}) }}";
 
         $twigTemplate = $twig->createTemplate($template);
-        $this->assertContains('60 days', $twigTemplate->render([]));
+        $this->assertStringContainsString('60 days', $twigTemplate->render());
     }
 }

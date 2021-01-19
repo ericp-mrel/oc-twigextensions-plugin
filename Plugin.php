@@ -41,14 +41,14 @@ class Plugin extends PluginBase
     public function boot()
     {
         /** @var \Twig\Environment $twig */
-        //$twig = $this->app->make('twig.environment');
-        //if (! $twig->hasExtension(IntlExtension::class)) {
-        //    $twig->addExtension(new IntlExtension());
-        //}
-        //
-        //if (! $twig->hasExtension(StringExtension::class)) {
-        //    $twig->addExtension(new StringExtension());
-        //}
+        $twig = $this->app->make('twig.environment');
+        if (! $twig->hasExtension(IntlExtension::class)) {
+            $twig->addExtension(new IntlExtension());
+        }
+
+        if (! $twig->hasExtension(StringExtension::class)) {
+            $twig->addExtension(new StringExtension());
+        }
 
         Event::listen('cms.page.beforeDisplay', function (Controller $controller, $page) {
             $twig = $controller->getTwig();
@@ -102,7 +102,7 @@ class Plugin extends PluginBase
         $functions += $this->getVarDumpFunction();
 
         // add Text extensions
-        $filters += $this->getTextFilters();
+        $filters += $this->getTextFilters($twig);
 
         // add Intl extensions if php5-intl installed
         if (class_exists('IntlDateFormatter')) {
@@ -158,14 +158,50 @@ class Plugin extends PluginBase
      *
      * @return array
      */
-    private function getTextFilters(): array
+    private function getTextFilters(\Twig\Environment $twig): array
     {
         return [
+            /**
+             * @deprecated Please use Twig's built-in unicode object. https://twig.symfony.com/doc/2.x/filters/u.html
+             */
             'truncate' => function ($value, $length = 30, $preserve = false, $separator = '...') {
-                return (new UnicodeString($value))->truncate($length, $separator, !$preserve)->toString();
+                // Add separator length to total desired string length in order to maintain backwards compatibility.
+                $sepLength = mb_strlen($separator);
+                if ($sepLength > 0) {
+                    $length += $sepLength;
+                }
+
+                return (new UnicodeString($value))
+                    ->truncate($length, $separator, !$preserve)
+                    ->toString();
             },
-            'wordwrap' => function ($value, $length = 80, $separator = "\n", $preserve = false) {
-                return (new UnicodeString($value))->wordwrap($length, $separator, !$preserve)->toString();
+
+            /**
+             * This has been re-implemented in order to maintain backwards compatibility.
+             *
+             * @deprecated Please use Twig's built-in unicode object. https://twig.symfony.com/doc/2.x/filters/u.html
+             *
+             * @see https://github.com/twigphp/Twig-extensions/blob/master/src/TextExtension.php#L54
+             */
+            'wordwrap' => function ($value, $length = 80, $separator = "\n", $preserve = false) use ($twig) {
+                $sentences = [];
+
+                $previous = mb_regex_encoding();
+                mb_regex_encoding($twig->getCharset());
+
+                $pieces = mb_split($separator, $value);
+                mb_regex_encoding($previous);
+
+                foreach ($pieces as $piece) {
+                    while (! $preserve && mb_strlen($piece, $twig->getCharset()) > $length) {
+                        $sentences[] = mb_substr($piece, 0, $length, $twig->getCharset());
+                        $piece = mb_substr($piece, $length, 2048, $twig->getCharset());
+                    }
+
+                    $sentences[] = $piece;
+                }
+
+                return implode($separator, $sentences);
             }
         ];
     }
