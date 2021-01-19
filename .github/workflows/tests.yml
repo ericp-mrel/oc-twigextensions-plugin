@@ -1,0 +1,49 @@
+name: Run tests
+
+on:
+  push:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  run-php-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 6
+      matrix:
+        phpVersions: ['7.2', '7.3', '7.4']
+        october: ['1.0', '1.1']
+        include:
+          - october: '1.0'
+            phpTools: composer:v1
+          - october: '1.1'
+            phpTools: composer:v2
+      fail-fast: false
+    name: PHP ${{ matrix.phpVersions }} - OctoberCMS v${{ matrix.october }}
+    steps:
+      - name: Checkout changes
+        uses: actions/checkout@v1
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.phpVersions }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
+          coverage: none
+          tools: ${{ matrix.phpTools }}
+      - name: Install OctoberCMS
+        run: |
+          mkdir -p ~/.composer
+          shopt -s extglob;
+          mkdir -p build/logs;
+          git clone -b "${{ matrix.october }}" https://github.com/octobercms/october.git;
+          mkdir -p ./october/plugins/vojtasvoboda/twigextensions;
+          mv !(october) october/plugins/vojtasvoboda/twigextensions;
+          cd october;
+          composer config --unset platform.php
+          composer self-update;
+          composer install --prefer-dist --no-interaction --no-progress --no-suggest;
+          composer require --dev php-coveralls/php-coveralls;
+      - name: Execute tests
+        run: |
+          cd october/plugins/vojtasvoboda/twigextensions;
+          ../../../vendor/bin/phpunit --coverage-clover build/logs/clover.xml
