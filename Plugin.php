@@ -4,7 +4,6 @@ use App;
 use Carbon\Carbon;
 use Cms\Classes\Controller;
 use Event;
-use Snilius\Twig\SortByFieldExtension;
 use Symfony\Component\String\UnicodeString;
 use System\Classes\PluginBase;
 use Twig\Extension\StringLoaderExtension;
