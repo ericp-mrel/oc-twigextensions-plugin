@@ -42,7 +42,7 @@ class Plugin extends PluginBase
     {
         /** @var \Twig\Environment $twig */
         $twig = $this->app->make('twig.environment');
-        if (! $twig->hasExtension(IntlExtension::class)) {
+        if (extension_loaded('intl') && ! $twig->hasExtension(IntlExtension::class)) {
             $twig->addExtension(new IntlExtension());
         }
 
@@ -53,7 +53,7 @@ class Plugin extends PluginBase
         Event::listen('cms.page.beforeDisplay', function (Controller $controller, $page) {
             $twig = $controller->getTwig();
 
-            if (! $twig->hasExtension(IntlExtension::class)) {
+            if (extension_loaded('intl') && ! $twig->hasExtension(IntlExtension::class)) {
                 $twig->addExtension(new IntlExtension());
             }
 
@@ -105,7 +105,7 @@ class Plugin extends PluginBase
         $filters += $this->getTextFilters($twig);
 
         // add Intl extensions if php5-intl installed
-        if (class_exists('IntlDateFormatter')) {
+        if (extension_loaded('intl')) {
             $filters += $this->getLocalizedFilters($twig);
         }
 
